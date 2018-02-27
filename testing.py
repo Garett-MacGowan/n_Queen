@@ -1,0 +1,3 @@
+import bisect
+
+print(len([]))
