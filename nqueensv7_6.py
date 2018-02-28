@@ -8,14 +8,13 @@ def main():
     for item in problemList:
         print("Board " + str(item) + "x" + str(item))
         currentBoard, occupiedPositiveDiagonals, occupiedNegativeDiagonals = createNChessBoard(item)
-        print(currentBoard)
-        print(" ")
-        visualizer(currentBoard, item)
+        #print(currentBoard)
+        #visualizer(currentBoard, item)
         result = solveNQueen(currentBoard, item, occupiedPositiveDiagonals, occupiedNegativeDiagonals)
         if result == False:
             print("Failed")
         else:
-            visualizer(currentBoard, item)
+            #visualizer(currentBoard, item)
             print("SUCCESS")
         #solutionMatrices.append(solveNQueen(currentBoard, item))
 
@@ -53,7 +52,7 @@ def visualizer(board, n):
 # Binary search via bisect library
 def searchList(space, target):
     conflictCount = 0
-    index = bisect.bisect_left(space, (target, , ))
+    index = bisect.bisect_left(space, (target, ))
     while index != len(space) and space[index][0] == target:
         conflictCount += 1
         index += 1
@@ -198,9 +197,9 @@ def createNChessBoard(n):
 
         positiveDiag = (index + targetColumn, index, targetColumn)
         negativeDiag = (index - targetColumn, index, targetColumn)
-        insertionIndex = bisect.bisect_left(occupiedPositiveDiagonals, (index + targetColumn, , ))
+        insertionIndex = bisect.bisect_left(occupiedPositiveDiagonals, (index + targetColumn, ))
         occupiedPositiveDiagonals.insert(insertionIndex, positiveDiag)
-        insertionIndex = bisect.bisect_left(occupiedNegativeDiagonals, (index - targetColumn, , ))
+        insertionIndex = bisect.bisect_left(occupiedNegativeDiagonals, (index - targetColumn, ))
         occupiedNegativeDiagonals.insert(insertionIndex, negativeDiag)
 
         '''
@@ -211,6 +210,7 @@ def createNChessBoard(n):
     return boardMatrix, occupiedPositiveDiagonals, occupiedNegativeDiagonals
 
 def validateConflicts(conflictingQueens, occupiedPositiveDiagonals, occupiedNegativeDiagonals, occupiedVerticals):
+    # Conflicting queens = column, cost, row
     if len(conflictingQueens) == 0:
         return conflictingQueens
     validatedConflictingQueens = []
@@ -245,15 +245,15 @@ def checkConflicts(currentBoard, n, occupiedPositiveDiagonals, occupiedNegativeD
         checkPositiveDiag = index + currentBoard[index - 1]
         checkNegativeDiag = index - currentBoard[index - 1]
         # Don't count self as conflict
-        print("positive")
-        print(searchList(occupiedPositiveDiagonals, checkPositiveDiag))
-        print("negative")
-        print(searchList(occupiedNegativeDiagonals, checkNegativeDiag))
-        print("vertical")
-        print(occupiedVerticals[currentBoard[index - 1] - 1][0])
+        #print("positive")
+        #print(searchList(occupiedPositiveDiagonals, checkPositiveDiag))
+        #print("negative")
+        #print(searchList(occupiedNegativeDiagonals, checkNegativeDiag))
+        #print("vertical")
+        #print(occupiedVerticals[currentBoard[index - 1] - 1][0])
         conflictCount = searchList(occupiedPositiveDiagonals, checkPositiveDiag) - 1 + searchList(occupiedNegativeDiagonals, checkNegativeDiag) - 1 + occupiedVerticals[currentBoard[index - 1] - 1][0] - 1
-        print("total")
-        print(conflictCount)
+        #print("total")
+        #print(conflictCount)
         if conflictCount == 0:
             continue
         else:
@@ -261,39 +261,64 @@ def checkConflicts(currentBoard, n, occupiedPositiveDiagonals, occupiedNegativeD
     return conflictingQueens
 
 # Returns a list of tuples containing possibly new conflicts
-def conflictHelper(space, target):
+def conflictHelper(space, target, row, column):
     conflictList = []
     index = bisect.bisect_left(space, (target, ))
     while index != len(space) and space[index][0] == target:
-        conflictList.append(space[index][1], space[index][2])
+        if space[index][1] == row and space[index][2] == column:
+            conflictList.append((space[index][1], space[index][2]))
         index += 1
     return conflictList
 
 def repairConflicts(column, row, conflictingQueens, occupiedPositiveDiagonals, occupiedNegativeDiagonals, occupiedVerticals):
     # Check for new vertical conflicts and add them to conflictingQueens if there are any
-    for i in range(len(occupiedVerticals[column])):
-        if occupiedVerticals[column][1][i] == row:
+    # For each queen within the column,
+    for i in range(len(occupiedVerticals[column - 1][1])):
+        # If we are looking at the moved queen, skip it, it is already known to be a conflicting queen
+        if occupiedVerticals[column - 1][1][i] == row:
             continue
         else:
-            newConflict = (column, len(occupiedVerticals[column][1]) - 1, row)
+            # if the queen is not in coflictingQueens, add it
+            newConflict = (column, len(occupiedVerticals[column - 1][1]) - 1, occupiedVerticals[column - 1][1][i])
+            found = False
             for item in conflictingQueens:
-                if item[0] == column and item[2] == row:
-                    continue
-                else:
-                    conflictingQueens.append(newConflict)
+                if item[0] == column and item[2] == occupiedVerticals[column - 1][1][i]:
+                    found = True
+                    break
+            if found == False:
+                conflictingQueens.append(newConflict)
     # Check for diagonal conflicts and add them to conflictingQueens if there are any
     checkPositiveDiag = row + column
     checkNegativeDiag = row - column
-    positiveDiagPossibles = conflictHelper(occupiedPositiveDiagonals, checkPositiveDiag)
-    negativeDiagPossibles = conflictHelper(occupiedNegativeDiagonals, checkNegativeDiag)
-    for item in conflictingQueens:
-        for pDiag in positiveDiagPossibles:
-            if
-        for nDiag in negativeDiagPossibles:
-
+    # positive and negative DiagPossibilities = (row, column) and represent possible conflicts
+    positiveDiagPossibles = conflictHelper(occupiedPositiveDiagonals, checkPositiveDiag, row, column)
+    negativeDiagPossibles = conflictHelper(occupiedNegativeDiagonals, checkNegativeDiag, row, column)
+    # For each possible conflict, check if it already exists in conflictingQueens
+    for pDiag in positiveDiagPossibles:
+        # column, cost, row
+        newConflict = (pDiag[1], 1, pDiag[0])
+        found = False
+        for item in conflictingQueens:
+            # row, column
+            if pDiag[0] == item[2] and pDiag[1] == item[0]:
+                found = True
+                break
+        if found == False:
+            conflictingQueens.append(newConflict)
+    for nDiag in negativeDiagPossibles:
+        newConflict = (nDiag[1], 1, nDiag[0])
+        found = False
+        for item in conflictingQueens:
+            # row, column
+            if nDiag[0] == item[2] and nDiag[1] == item[0]:
+                found = True
+                break
+        if found == False:
+            conflictingQueens.append(newConflict)
+    return conflictingQueens
 
 def solveNQueen(currentBoard, n, occupiedPositiveDiagonals, occupiedNegativeDiagonals):
-    maxSteps = 10
+    maxSteps = 100000
     occupiedVerticals = []
     # Declare the ammount of occupants in each column, and the rows which are occupied in the column
     for _ in range(n):
@@ -302,24 +327,24 @@ def solveNQueen(currentBoard, n, occupiedPositiveDiagonals, occupiedNegativeDiag
         occupiedVerticals[currentBoard[i] - 1][1].append(i + 1)
     conflictingQueens = checkConflicts(currentBoard, n, occupiedPositiveDiagonals, occupiedNegativeDiagonals, occupiedVerticals)
     for _ in range(maxSteps):
-        conflictingQueens = validateConflicts(conflictingQueens, occupiedPositiveDiagonals, occupiedNegativeDiagonals, occupiedVerticals):
-        print("Here are occupied verticals")
-        print(occupiedVerticals)
-        print("This is conflicting Queens")
-        print(conflictingQueens)
-        print("this is positiveDiag")
-        print(occupiedPositiveDiagonals)
-        print("this is negativeDiag")
-        print(occupiedNegativeDiagonals)
+        conflictingQueens = validateConflicts(conflictingQueens, occupiedPositiveDiagonals, occupiedNegativeDiagonals, occupiedVerticals)
+        #print("Here are occupied verticals")
+        #print(occupiedVerticals)
+        #print("This is conflicting Queens")
+        #print(conflictingQueens)
+        #print("this is positiveDiag")
+        #print(occupiedPositiveDiagonals)
+        #print("this is negativeDiag")
+        #print(occupiedNegativeDiagonals)
         if len(conflictingQueens) == 0:
             return currentBoard
         conflictingIndex = random.randint(0, len(conflictingQueens) - 1)
         selectedQueen = conflictingQueens[conflictingIndex][0]
         conflicted = conflictingQueens[conflictingIndex][1]
         index = conflictingQueens[conflictingIndex][2]
-        print("Queen and Index selected")
-        print(selectedQueen)
-        print(index)
+        #print("Queen and Index selected")
+        #print(selectedQueen)
+        #print(index)
         # Maybe change index to be descending
         columnDecider = []
         queenSwapped = False
@@ -331,30 +356,32 @@ def solveNQueen(currentBoard, n, occupiedPositiveDiagonals, occupiedNegativeDiag
             # don't count self as conflict
             if column == selectedQueen:
                 conflictCount -= 3
-            print("This is the conflictCount")
-            print(conflictCount)
+            #print("This is the conflictCount")
+            #print(conflictCount)
             if conflictCount == 0:
                 # Move the queen into the column and remove the old conflict indicators
                 currentBoard[index - 1] = column
 
                 positiveDiag = (index + column, index, column)
                 negativeDiag = (index - column, index, column)
-                insertionIndex = bisect.bisect_left(occupiedPositiveDiagonals, (index + column, , ))
+                insertionIndex = bisect.bisect_left(occupiedPositiveDiagonals, (index + column, ))
                 occupiedPositiveDiagonals.insert(insertionIndex, positiveDiag)
-                insertionIndex = bisect.bisect_left(occupiedNegativeDiagonals, (index - column, , ))
+                insertionIndex = bisect.bisect_left(occupiedNegativeDiagonals, (index - column, ))
                 occupiedNegativeDiagonals.insert(insertionIndex, negativeDiag)
 
                 occupiedVerticals[column - 1][0] += 1
                 # Append the index for use in tracing new conflicting queens
                 occupiedVerticals[column - 1][1].append(index)
 
-                delIndex = bisect.bisect_left(occupiedPositiveDiagonals, (index + selectedQueen, , ))
+                delIndex = bisect.bisect_left(occupiedPositiveDiagonals, (index + selectedQueen, ))
                 del occupiedPositiveDiagonals[delIndex]
-                delIndex = bisect.bisect_left(occupiedNegativeDiagonals, (index - selectedQueen, , ))
+                delIndex = bisect.bisect_left(occupiedNegativeDiagonals, (index - selectedQueen, ))
                 del occupiedNegativeDiagonals[delIndex]
 
                 occupiedVerticals[selectedQueen - 1][0] -= 1
                 occupiedVerticals = removeFromVerticals(occupiedVerticals, selectedQueen - 1, index)
+
+                del conflictingQueens[conflictingIndex]
 
                 queenSwapped = True
                 break
@@ -362,7 +389,7 @@ def solveNQueen(currentBoard, n, occupiedPositiveDiagonals, occupiedNegativeDiag
             if conflictCount <= conflicted:
                 columnDecider.append((column, conflictCount))
         if queenSwapped == True:
-            visualizer(currentBoard, n)
+            #visualizer(currentBoard, n)
             continue
         sorted(columnDecider, key=lambda x: x[1])
         columnChoices = []
@@ -372,8 +399,8 @@ def solveNQueen(currentBoard, n, occupiedPositiveDiagonals, occupiedNegativeDiag
                 columnChoices.append(item)
             else:
                 break
-        print("column choices to move to")
-        print(columnChoices)
+        #print("column choices to move to")
+        #print(columnChoices)
         selectedColumn = columnChoices[random.randint(0, len(columnChoices) - 1)]
         currentBoard[index - 1] = selectedColumn[0]
 
@@ -388,18 +415,20 @@ def solveNQueen(currentBoard, n, occupiedPositiveDiagonals, occupiedNegativeDiag
         # Append the index for use in tracing new conflicting queens
         occupiedVerticals[selectedColumn[0] - 1][1].append(index)
 
-        delIndex = bisect.bisect_left(occupiedPositiveDiagonals, (index + selectedQueen, , ))
+        delIndex = bisect.bisect_left(occupiedPositiveDiagonals, (index + selectedQueen, ))
         del occupiedPositiveDiagonals[delIndex]
-        delIndex = bisect.bisect_left(occupiedNegativeDiagonals, (index - selectedQueen, , ))
+        delIndex = bisect.bisect_left(occupiedNegativeDiagonals, (index - selectedQueen, ))
         del occupiedNegativeDiagonals[delIndex]
 
         occupiedVerticals[selectedQueen - 1][0] -= 1
         occupiedVerticals = removeFromVerticals(occupiedVerticals, selectedQueen - 1, index)
 
-        conflictingQueens = repairConflicts(selectedQueen, index, conflictingQueens, occupiedPositiveDiagonals, occupiedNegativeDiagonals, occupiedVerticals)
+        del conflictingQueens[conflictingIndex]
+        conflictingQueens.append((selectedColumn[0], selectedColumn[1], index))
 
-        visualizer(currentBoard, n)
-        time.sleep(0.5)
+        conflictingQueens = repairConflicts(selectedColumn[0], index, conflictingQueens, occupiedPositiveDiagonals, occupiedNegativeDiagonals, occupiedVerticals)
+
+        #visualizer(currentBoard, n)
     return False
 
 main()

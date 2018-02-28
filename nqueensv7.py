@@ -14,7 +14,7 @@ def main():
         if result == False:
             print("Failed")
         else:
-            visualizer(currentBoard, item)
+            #visualizer(currentBoard, item)
             print("SUCCESS")
         #solutionMatrices.append(solveNQueen(currentBoard, item))
 
@@ -244,7 +244,7 @@ def solveNQueen(currentBoard, n, occupiedPositiveDiagonals, occupiedNegativeDiag
     conflictingQueens = checkConflicts(currentBoard, n, occupiedPositiveDiagonals, occupiedNegativeDiagonals, occupiedVerticals)
     for _ in range(maxSteps):
         conflictingQueens = checkConflicts(currentBoard, n, occupiedPositiveDiagonals, occupiedNegativeDiagonals, occupiedVerticals)
-        print(len(conflictingQueens))
+        #print(len(conflictingQueens))
         if len(conflictingQueens) == 0:
             return currentBoard
         conflictingIndex = random.randint(0, len(conflictingQueens) - 1)
