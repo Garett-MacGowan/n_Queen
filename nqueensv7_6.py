@@ -10,12 +10,14 @@ def main():
         currentBoard, occupiedPositiveDiagonals, occupiedNegativeDiagonals = createNChessBoard(item)
         #print(currentBoard)
         #visualizer(currentBoard, item)
+
         result = solveNQueen(currentBoard, item, occupiedPositiveDiagonals, occupiedNegativeDiagonals)
         if result == False:
             print("Failed")
         else:
             #visualizer(currentBoard, item)
             print("SUCCESS")
+
         #solutionMatrices.append(solveNQueen(currentBoard, item))
 
 ''' Function reads nqueens.txt which is expected to be in the working directory
@@ -48,6 +50,7 @@ def visualizer(board, n):
         print(currentRow)
         currentRow = []
         i += 1
+    print(" ")
 
 # Binary search via bisect library
 def searchList(space, target):
@@ -65,7 +68,27 @@ def costCheck(i, index, occupiedPositiveDiagonals, occupiedNegativeDiagonals, un
     targetCost = searchList(occupiedPositiveDiagonals, checkPositiveDiag) + searchList(occupiedNegativeDiagonals, checkNegativeDiag)
     return targetCost, targetColumn
 
-def greedHelper(currentCost, occupiedPositiveDiagonals, occupiedNegativeDiagonals, unchosen, index, n):
+def smallGreedHelper(currentCost, occupiedPositiveDiagonals, occupiedNegativeDiagonals, unchosen, index, n):
+    targetIndex = random.randint(0, len(unchosen) - 1)
+    targetCost, targetColumn = costCheck(targetIndex, index, occupiedPositiveDiagonals, occupiedNegativeDiagonals, unchosen)
+    if targetCost == currentCost:
+        return targetColumn, currentCost
+    else:
+        newPotentialCost = n
+        tempUnvisited = list(unchosen)
+        while len(tempUnvisited) > 0:
+            targetIndex = random.randint(0, len(tempUnvisited) - 1)
+            targetCost, targetColumn = costCheck(targetIndex, index, occupiedPositiveDiagonals, occupiedNegativeDiagonals, tempUnvisited)
+            if targetCost == currentCost:
+                return targetColumn, currentCost
+            else:
+                if targetCost < newPotentialCost:
+                    newPotentialCost = targetCost
+                del(tempUnvisited[targetIndex])
+        targetColumn, currentCost = smallGreedHelper(newPotentialCost, occupiedPositiveDiagonals, occupiedNegativeDiagonals, unchosen, index, n)
+        return targetColumn, currentCost
+
+def largeGreedHelper(currentCost, occupiedPositiveDiagonals, occupiedNegativeDiagonals, unchosen, index, n):
     targetIndex = random.randint(0, len(unchosen) - 1)
     targetCost, targetColumn = costCheck(targetIndex, index, occupiedPositiveDiagonals, occupiedNegativeDiagonals, unchosen)
     if targetCost == currentCost:
@@ -173,7 +196,7 @@ def greedHelper(currentCost, occupiedPositiveDiagonals, occupiedNegativeDiagonal
                         newPotentialCost = targetCost
                     i -= 1
         # Recursively call greedHelper since no column satisfying the current cost was found
-        targetColumn, currentCost = greedHelper(newPotentialCost, occupiedPositiveDiagonals, occupiedNegativeDiagonals, unchosen, index, n)
+        targetColumn, currentCost = largeGreedHelper(newPotentialCost, occupiedPositiveDiagonals, occupiedNegativeDiagonals, unchosen, index, n)
         return targetColumn, currentCost
 
 def createNChessBoard(n):
@@ -190,7 +213,10 @@ def createNChessBoard(n):
     for index in range(1, n + 1):
         print("%" + str(index/n*100))
 
-        targetColumn, currentCost = greedHelper(currentCost, occupiedPositiveDiagonals, occupiedNegativeDiagonals, unchosen, index, n)
+        if index/n*100 <= 66:
+            targetColumn, currentCost = largeGreedHelper(currentCost, occupiedPositiveDiagonals, occupiedNegativeDiagonals, unchosen, index, n)
+        else:
+            targetColumn, currentCost = smallGreedHelper(currentCost, occupiedPositiveDiagonals, occupiedNegativeDiagonals, unchosen, index, n)
         # Remove selected column from the list of unchosen columns
         delIndex = bisect.bisect_left(unchosen, targetColumn)
         del unchosen[delIndex]
@@ -318,16 +344,21 @@ def repairConflicts(column, row, conflictingQueens, occupiedPositiveDiagonals, o
     return conflictingQueens
 
 def solveNQueen(currentBoard, n, occupiedPositiveDiagonals, occupiedNegativeDiagonals):
-    maxSteps = 100000
+    maxSteps = 2*n
     occupiedVerticals = []
     # Declare the ammount of occupants in each column, and the rows which are occupied in the column
     for _ in range(n):
         occupiedVerticals.append([1, []])
     for i in range(n):
         occupiedVerticals[currentBoard[i] - 1][1].append(i + 1)
+    lastQueenMoved = None
+    panickMode = False
+    lastLenConflicting = None
+    stuckCounter = 0
     conflictingQueens = checkConflicts(currentBoard, n, occupiedPositiveDiagonals, occupiedNegativeDiagonals, occupiedVerticals)
+    sorted(conflictingQueens, key=lambda x: x[1], reverse = True)
     for _ in range(maxSteps):
-        conflictingQueens = validateConflicts(conflictingQueens, occupiedPositiveDiagonals, occupiedNegativeDiagonals, occupiedVerticals)
+        print(len(conflictingQueens))
         #print("Here are occupied verticals")
         #print(occupiedVerticals)
         #print("This is conflicting Queens")
@@ -338,10 +369,30 @@ def solveNQueen(currentBoard, n, occupiedPositiveDiagonals, occupiedNegativeDiag
         #print(occupiedNegativeDiagonals)
         if len(conflictingQueens) == 0:
             return currentBoard
-        conflictingIndex = random.randint(0, len(conflictingQueens) - 1)
-        selectedQueen = conflictingQueens[conflictingIndex][0]
-        conflicted = conflictingQueens[conflictingIndex][1]
-        index = conflictingQueens[conflictingIndex][2]
+
+        if stuckCounter == 100:
+            panickMode = True
+            print("panick")
+
+        if panickMode != True:
+            conflictingIndex = 0
+            selectedQueen = conflictingQueens[conflictingIndex][0]
+            conflicted = conflictingQueens[conflictingIndex][1]
+            if lastLenConflicting == None:
+                lastLenConflicting = len(conflictingQueens)
+            index = conflictingQueens[conflictingIndex][2]
+        else:
+            conflictingIndex = random.randint(0, len(conflictingQueens) - 1)
+            selectedQueen = conflictingQueens[conflictingIndex][0]
+            conflicted = conflictingQueens[conflictingIndex][1]
+            index = conflictingQueens[conflictingIndex][2]
+
+        if len(conflictingQueens) != lastLenConflicting:
+            stuckCounter = 0
+            lastLenConflicting = len(conflictingQueens)
+        else:
+            stuckCounter += 1
+
         #print("Queen and Index selected")
         #print(selectedQueen)
         #print(index)
@@ -427,6 +478,9 @@ def solveNQueen(currentBoard, n, occupiedPositiveDiagonals, occupiedNegativeDiag
         conflictingQueens.append((selectedColumn[0], selectedColumn[1], index))
 
         conflictingQueens = repairConflicts(selectedColumn[0], index, conflictingQueens, occupiedPositiveDiagonals, occupiedNegativeDiagonals, occupiedVerticals)
+        conflictingQueens = validateConflicts(conflictingQueens, occupiedPositiveDiagonals, occupiedNegativeDiagonals, occupiedVerticals)
+
+        sorted(conflictingQueens, key=lambda x: x[1], reverse = True)
 
         #visualizer(currentBoard, n)
     return False
