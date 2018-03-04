@@ -3,7 +3,6 @@ import random
 
 '''
 Author: Garett MacGowan
-Student Number: 10197107
 Date of Revision: March 2, 2018
 '''
 
